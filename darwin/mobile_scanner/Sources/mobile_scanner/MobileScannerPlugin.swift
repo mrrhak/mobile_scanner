@@ -837,38 +837,33 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
 
     // FIXED: Safe observer removal with tracking
     private func releaseCamera() {
-        guard let captureSession = captureSession else {
-            return
+        if let captureSession = captureSession {
+            captureSession.stopRunning()
+            for input in captureSession.inputs {
+                captureSession.removeInput(input)
+            }
+            for output in captureSession.outputs {
+                captureSession.removeOutput(output)
+            }
+            
+            self.captureSession = nil
         }
 
-        guard let device = device else {
-            return
-        }
-
-        captureSession.stopRunning()
-        for input in captureSession.inputs {
-            captureSession.removeInput(input)
-        }
-        for output in captureSession.outputs {
-            captureSession.removeOutput(output)
-        }
-        
-        // FIXED: Only remove observers if they were added
-        if isTorchObserverAdded {
+        if let device = device {
+            if isTorchObserverAdded {
             device.removeObserver(self, forKeyPath: #keyPath(AVCaptureDevice.torchMode))
             isTorchObserverAdded = false
         }
-        
 #if os(iOS)
-        if isZoomObserverAdded {
+            if isZoomObserverAdded {
             device.removeObserver(self, forKeyPath: #keyPath(AVCaptureDevice.videoZoomFactor))
             isZoomObserverAdded = false
         }
 #endif
+            self.device = nil
+        }
 
         latestBuffer = nil
-        self.captureSession = nil
-        self.device = nil
     }
 
     private func releaseTexture() {
